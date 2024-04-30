@@ -1,0 +1,235 @@
+/* CS 354 - Digital Design
+   4-bit CPU (behavioral implementation)
+*/
+module cpu (Instruction, WriteData, CLK);
+   input [8:0] Instruction;
+   input CLK;
+   output [3:0] WriteData;
+   wire [8:0] IR;
+   wire [3:0] A,B,Result;
+   wire [2:0] ALUctl;
+   instr_reg instr(Instruction,IR,CLK);
+   control ctl (IR[8:6],Sel,ALUctl);
+   quad2x1mux mux(IR[5:2],Result,Sel,WriteData);
+   regfile regs(IR[5:4],IR[3:2],IR[1:0],WriteData,A,B,CLK);
+   ALU_4_bit alu (ALUctl, A, B, Result);
+endmodule
+
+module instr_reg (Instruction,IR,CLK);
+   input [8:0] Instruction;
+   input CLK;
+   output [8:0] IR;
+// Replace the following with 9 instances of D flip-flops
+   D_flip_flop DFF0(Instruction[0],CLK,IR[0]);
+   D_flip_flop DFF1(Instruction[1],CLK,IR[1]);
+   D_flip_flop DFF2(Instruction[2],CLK,IR[2]);
+   D_flip_flop DFF3(Instruction[3],CLK,IR[3]);
+   D_flip_flop DFF4(Instruction[4],CLK,IR[4]);
+   D_flip_flop DFF5(Instruction[5],CLK,IR[5]);
+   D_flip_flop DFF6(Instruction[6],CLK,IR[6]);
+   D_flip_flop DFF7(Instruction[7],CLK,IR[7]);
+   D_flip_flop DFF8(Instruction[8],CLK,IR[8]);
+endmodule
+
+module control (OP,Sel,ALUctl);
+  input [2:0] OP;
+// Replace the following with gate-level code
+  output reg Sel;
+  output reg [2:0] ALUctl;
+  always @(OP) case (OP)
+    3'b000: {Sel,ALUctl} = 4'b1010; // ADD
+    3'b001: {Sel,ALUctl} = 4'b1110; // SUB
+    3'b010: {Sel,ALUctl} = 4'b1000; // AND
+    3'b011: {Sel,ALUctl} = 4'b1001; // OR
+    3'b100: {Sel,ALUctl} = 4'b1111; // SLT
+    3'b101: {Sel,ALUctl} = 4'b0000; // LI
+  endcase
+endmodule
+
+module quad2x1mux (I0,I1,Sel,Out);
+  input [3:0] I0,I1;
+  input Sel;
+  output [3:0] Out;
+// Replace the following with gate-level code
+  assign Out = (Sel)? I1: I0;
+endmodule
+
+module regfile (ReadReg1,ReadReg2,WriteReg,WriteData,ReadData1,ReadData2,CLK);
+  input [1:0] ReadReg1,ReadReg2,WriteReg;
+  input [3:0] WriteData;
+  input CLK;
+  output [3:0] ReadData1,ReadData2;
+  reg [3:0] Regs[0:3]; 
+  assign ReadData1 = Regs[ReadReg1];
+  assign ReadData2 = Regs[ReadReg2];
+  initial Regs[0] = 0;
+  always @(negedge CLK)
+     Regs[WriteReg] = WriteData;
+endmodule
+
+module ALU (ALUctl, A, B, ALUOut);
+  input [2:0] ALUctl;
+  input [3:0] A,B;
+  output reg [3:0] ALUOut;
+  output Zero,Overflow;
+  always @(ALUctl, A, B) //re-evaluate if these change
+  case (ALUctl)
+    3'b000: ALUOut <= A & B;
+    3'b001: ALUOut <= A | B;
+    3'b010: ALUOut <= A + B;
+    3'b110: ALUOut <= A - B;
+    3'b111: ALUOut <= A < B ? 1:0;
+   endcase
+endmodule
+
+module test_cpu;
+   reg [8:0] Instruction;
+   reg CLK;
+   wire [3:0] WriteData;
+   cpu cpu1 (Instruction, WriteData, CLK);
+   initial
+   begin
+     $display("\nCLK Instruction WriteData\n-------------------------"); 
+     $monitor("%b   %b   %d (%b)", CLK,Instruction,WriteData,WriteData);
+     #1 Instruction = 9'b101_0111_01; // li $1, 7 # $1 = 7
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b101_0101_10; // li $2, 5 # $2 = 5 
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b001_01_10_11; // sub $3, $1, $2 # $3 = 2
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+//   Add more instructions
+//   ...
+   end
+endmodule
+
+module D_flip_flop(D,CLK,Q);
+   input D,CLK; 
+   output Q; 
+   wire CLK1, Y;
+   not  not1 (CLK1,CLK);
+   D_latch D1(D,CLK, Y),
+           D2(Y,CLK1,Q);
+endmodule 
+
+module D_latch(D,C,Q);
+   input D,C; 
+   output Q;
+   wire x,y,D1,Q1; 
+   nand nand1 (x,D, C), 
+        nand2 (y,D1,C), 
+        nand3 (Q,x,Q1),
+        nand4 (Q1,y,Q); 
+   not  not1  (D1,D);
+endmodule 
+
+module ALU_1_bit(a,b,Cin,less,Ainvert,Binvert,x,y,Cout,result);
+    input a,b,Cin,less,Ainvert,Binvert,x,y;
+    output Cout,result;
+    
+    wire a1,b1,o0,o1,o2;
+    
+    and g0(o0,a1,b1);
+    
+    or g1(o1,a1,b1);
+    
+    xor g2(b1,b,Binvert),
+        g3(a1,a,Ainvert);
+
+    full_adder FA(a1,b1,Cin,o2,Cout);
+    
+    mux_4x1 OPMUX(o0,o1,o2,less,x,y,result);
+    
+endmodule
+
+module ALU_1_bit_set_overflow(a,b,Cin,less,Ainvert,Binvert,x,y,set,overflow,result);
+    input a,b,Cin,less,Ainvert,Binvert,x,y;
+    output set,overflow,result;
+    
+    wire a1,b1,o0,o1,o2,v;
+    
+    and g0(o0,a1,b1);
+    
+    or g1(o1,a1,b1);
+    
+    xor g2(b1,b,Binvert),
+        g3(a1,a,Ainvert);
+
+    full_adder FA(a1,b1,Cin,o2,Cout);
+    
+    mux_4x1 OPMUX(o0,o1,o2,less,x,y,result);
+    
+    and g4(set, o2);
+    
+    xor g5(v,Cin,Cout);
+    
+    and g6(overflow,v,x);
+    
+endmodule
+
+module ALU_4_bit(op,a,b,result);
+    input [3:0] op;
+    input [3:0] a;
+    input [3:0] b;
+    output [3:0] result;
+    output zero,overflow;
+    
+    wire set;
+    wire [2:0] Cout;
+    
+    ALU_1_bit ALU0(a[0],b[0],op[2],set,op[3],op[2],op[1],op[0],Cout[0],result[0]);
+    ALU_1_bit ALU1(a[1],b[1],Cout[0],1'b0,op[3],op[2],op[1],op[0],Cout[1],result[1]);
+    ALU_1_bit ALU2(a[2],b[2],Cout[1],1'b0,op[3],op[2],op[1],op[0],Cout[2],result[2]);
+
+    ALU_1_bit_set_overflow ALU3(a[3],b[3],Cout[2],1'b0,op[3],op[2],op[1],op[0],set,overflow,result[3]);
+    
+    nor g1(zero,result[0],result[1],result[2],result[3]);
+    
+endmodule
+
+module half_adder(x,y,S,C);
+    input x,y;
+    output S,C;
+         
+    xor g1(S,x,y);
+    
+    and g2(C,x,y);
+endmodule
+
+module full_adder(x,y,z,S,C);
+    input x,y,z;
+    output S,C;
+    wire S1,C1,C2;
+    
+    half_adder HA1(x,y,S1,C1);
+    half_adder HA2(S1,z,S,C2);
+    
+    or g1(C,C1,C2);
+endmodule
+
+module mux_2x1(x,y,z,out);
+    input x,y,z;
+    output out;
+    
+    wire a,b;
+    
+    not notz(notz, z);
+    
+    and g1(a,x,notz),
+        g2(b,y,z);
+    
+    or  g3(out,a,b);
+endmodule
+
+module mux_4x1(I0,I1,I2,I3,S1,S0,out);
+    input I0,I1,I2,I3,S1,S0;
+    output out;
+    
+    wire o1, o2;
+    
+    mux_2x1 MUX1(I0,I1,S0,o1);
+    mux_2x1 MUX2(I2,I3,S0,o2);
+    mux_2x1 MUX3(o1,o2,S1,out);
+endmodule
