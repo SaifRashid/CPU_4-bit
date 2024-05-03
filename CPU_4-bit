@@ -34,16 +34,23 @@ endmodule
 module control (OP,Sel,ALUctl);
   input [2:0] OP;
 // Replace the following with gate-level code
-  output reg Sel;
-  output reg [2:0] ALUctl;
-  always @(OP) case (OP)
-    3'b000: {Sel,ALUctl} = 4'b1010; // ADD
-    3'b001: {Sel,ALUctl} = 4'b1110; // SUB
-    3'b010: {Sel,ALUctl} = 4'b1000; // AND
-    3'b011: {Sel,ALUctl} = 4'b1001; // OR
-    3'b100: {Sel,ALUctl} = 4'b1111; // SLT
-    3'b101: {Sel,ALUctl} = 4'b0000; // LI
-  endcase
+  output Sel;
+  output [2:0] ALUctl;
+
+  not g0(notOP0, OP[0]),
+      g1(notOP1, OP[1]),
+      g2(notOP2, OP[2]);
+
+  and g3(o1, notOP0, OP[2]),
+      g4(o2, OP[0], OP[1]),
+      g6(o3, notOP1, notOP2),
+      g8(o4, notOP2, notOP1, OP[0]);
+
+  or  g5(ALUctl[0], o1, o2),
+      g7(ALUctl[1], o1, o3),
+      g9(ALUctl[2], o1, o4),
+      g10(Sel, notOP2, OP[1] ,notOP0);
+
 endmodule
 
 module quad2x1mux (I0,I1,Sel,Out);
@@ -51,7 +58,22 @@ module quad2x1mux (I0,I1,Sel,Out);
   input Sel;
   output [3:0] Out;
 // Replace the following with gate-level code
-  assign Out = (Sel)? I1: I0;
+  not (notSel, Sel);
+
+  and (o0, I0[0], notSel),
+      (o1, I0[1], notSel),
+      (o2, I0[2], notSel),
+      (o3, I0[3], notSel),
+
+      (o4, I1[0], Sel),
+      (o5, I1[1], Sel),
+      (o6, I1[2], Sel),
+      (o7, I1[3], Sel);
+
+  or  (Out[0], o0, o4),
+      (Out[1], o1, o5),
+      (Out[2], o2, o6),
+      (Out[3], o3, o7);
 endmodule
 
 module regfile (ReadReg1,ReadReg2,WriteReg,WriteData,ReadData1,ReadData2,CLK);
