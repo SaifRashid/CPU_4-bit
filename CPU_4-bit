@@ -124,6 +124,27 @@ module test_cpu;
      #1 CLK=0; // Negative edge - execute instruction
 //   Add more instructions
 //   ...
+     #1 Instruction = 9'b101_1010_11; // li $t3, 10 # $t3 = 10 
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b011_10_11_10; // or $t2, $t2, $t3 # $t2 = 15
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b010_10_11_11; // and $t3, $t2, $t3 # $t3 = 10
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b100_11_10_10; // slt $t2, $t3, $t2 # $t2 = 1
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b000_11_10_10; // add $t2, $t3, $t2 # $t2 = 11
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction  
+     #1 Instruction = 9'b000_01_10_11; // add $t3, $t1, $t2   # $t3 = 2
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction  
+     #1 Instruction = 9'b100_10_11_01; // slt $t1, $t2, $t3   # $t1 = 0 (behavioral ALU) or 1 (gate-level ALU)
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction 
    end
 endmodule
 
