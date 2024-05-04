@@ -60,20 +60,20 @@ module quad2x1mux (I0,I1,Sel,Out);
 // Replace the following with gate-level code
   not (notSel, Sel);
 
-  and (o0, I0[0], notSel),
-      (o1, I0[1], notSel),
-      (o2, I0[2], notSel),
-      (o3, I0[3], notSel),
+  and g0(o0, I0[0], notSel),
+      g1(o1, I0[1], notSel),
+      g2(o2, I0[2], notSel),
+      g3(o3, I0[3], notSel),
 
-      (o4, I1[0], Sel),
-      (o5, I1[1], Sel),
-      (o6, I1[2], Sel),
-      (o7, I1[3], Sel);
+      g4(o4, I1[0], Sel),
+      g5(o5, I1[1], Sel),
+      g6(o6, I1[2], Sel),
+      g7(o7, I1[3], Sel);
 
-  or  (Out[0], o0, o4),
-      (Out[1], o1, o5),
-      (Out[2], o2, o6),
-      (Out[3], o3, o7);
+  or  g8(Out[0], o0, o4),
+      g9(Out[1], o1, o5),
+      g10(Out[2], o2, o6),
+      g11(Out[3], o3, o7);
 endmodule
 
 module regfile (ReadReg1,ReadReg2,WriteReg,WriteData,ReadData1,ReadData2,CLK);
